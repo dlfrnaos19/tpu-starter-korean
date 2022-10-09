@@ -42,136 +42,144 @@ Google Cloud TPU에 대한 모든 것
     * [9.1. Import convention](#91-import-convention)
     * [9.2. JAX random keys 관리](#92-manage-random-keys-in-jax)
     * [9.3. 모델 파라미터 시리얼라이즈](#93-serialize-model-parameters)
-    * [9.4. Convertion between NumPy arrays and JAX arrays](#94-convertion-between-numpy-arrays-and-jax-arrays)
-    * [9.5. Convertion between PyTorch tensors and JAX arrays](#95-convertion-between-pytorch-tensors-and-jax-arrays)
-    * [9.6. Type annotation](#96-type-annotation)
-    * [9.7. Check if an array is either a NumPy array or a JAX array](#97-check-if-an-array-is-either-a-numpy-array-or-a-jax-array)
-    * [9.8. Get the shapes of all parameters in a nested dictionary](#98-get-the-shapes-of-all-parameters-in-a-nested-dictionary)
-    * [9.9. The correct way to generate random numbers on CPU](#99-the-correct-way-to-generate-random-numbers-on-cpu)
-    * [9.10. Use optimizers from Optax](#910-use-optimizers-from-optax)
-    * [9.11. Use the cross-entropy loss implementation from Optax](#911-use-the-cross-entropy-loss-implementation-from-optax)
-* [10. Working With Pods](#10-working-with-pods)
-    * [10.1. Create a shared directory using NFS](#101-create-a-shared-directory-using-nfs)
-    * [10.2. Run a command simultaneously on all TPU Pods](#102-run-a-command-simultaneously-on-all-tpu-pods)
-* [11. Common Gotchas](#11-common-gotchas)
-    * [11.1. External IP of TPU machine changes occasionally](#111-external-ip-of-tpu-machine-changes-occasionally)
-    * [11.2. One TPU device can only be used by one process at a time](#112-one-tpu-device-can-only-be-used-by-one-process-at-a-time)
-    * [11.3. TCMalloc breaks several programs](#113-tcmalloc-breaks-several-programs)
-    * [11.4. There is no TPU counterpart of nvidia-smi](#114-there-is-no-tpu-counterpart-of-nvidia-smi)
-    * [11.5. libtpu.so already in used by another process](#115-libtpuso-already-in-used-by-another-process)
-    * [11.6. JAX does not support the multiprocessing fork strategy](#116-jax-does-not-support-the-multiprocessing-fork-strategy)
+    * [9.4. NumPy arrays 와 JAX arrays 변환](#94-convertion-between-numpy-arrays-and-jax-arrays)
+    * [9.5. PyTorch tensors 와 JAX arrays 변환](#95-convertion-between-pytorch-tensors-and-jax-arrays)
+    * [9.6. 타입 어노테이션](#96-type-annotation)
+    * [9.7. NumPy array , a JAX array 여부 확인하기](#97-check-if-an-array-is-either-a-numpy-array-or-a-jax-array)
+    * [9.8. 중첩 딕셔너리 구조에서 모든 파라미터 shape 확인](#98-get-the-shapes-of-all-parameters-in-a-nested-dictionary)
+    * [9.9. CPU에서 무작위 숫자 생성하는 올바른 방법](#99-the-correct-way-to-generate-random-numbers-on-cpu)
+    * [9.10. Optax로 optimizers 사용하기](#910-use-optimizers-from-optax)
+    * [9.11. Optax로 크로스엔트로피 loss 사용하기](#911-use-the-cross-entropy-loss-implementation-from-optax)
+* [10. Pods 사용하기](#10-working-with-pods)
+    * [10.1. NFS를 사용해 공유 디렉토리 만들기](#101-create-a-shared-directory-using-nfs)
+    * [10.2. 모든 TPU Pods에서 동시에 command 실행하기](#102-run-a-command-simultaneously-on-all-tpu-pods)
+* [11. 일반적인 문제들](#11-common-gotchas)
+    * [11.1. TPU machine의 External IP가 빈번하게 바뀌는 현상](#111-external-ip-of-tpu-machine-changes-occasionally)
+    * [11.2. 1개 TPU device는 1개 프로세스만 사용가능](#112-one-tpu-device-can-only-be-used-by-one-process-at-a-time)
+    * [11.3. 여러 프로그램과 충돌나는 TCMalloc](#113-tcmalloc-breaks-several-programs)
+    * [11.4. TPU를 위한 nvidia-smi 대체프로그램이 없음](#114-there-is-no-tpu-counterpart-of-nvidia-smi)
+    * [11.5. 다른 프로세스에 의해 libtpu.so가 사용중인 현상](#115-libtpuso-already-in-used-by-another-process)
+    * [11.6. fork 방식의 multiprocessing을 지원하지 않는 JAX](#116-jax-does-not-support-the-multiprocessing-fork-strategy)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
 
-This project is inspired by [Cloud Run FAQ](https://github.com/ahmetb/cloud-run-faq), a community-maintained knowledge base of another Google Cloud product.
+이 프로젝트는 [Cloud Run FAQ](https://github.com/ahmetb/cloud-run-faq)에 영감을 받아서 만들어졌으며, 커뮤니티 기반으로 관리하는 Google Cloud의 기술 자료입니다.
 
-## 1. Community
+## 1. 커뮤니티
 
-As of 23 Feb 2022, there is no official chat group for Cloud TPUs. You can join the [@cloudtpu](https://t.me/cloudtpu) chat group on Telegram or [TPU Podcast](https://github.com/shawwn/tpunicorn#ml-community) on Discord, which are connected with each other. There is also an official TRC Cloud TPU v4 user group in Google Chat.
+2022 2. 23을 기준으로 Cloud TPUs 관련 공식 대화 채널은 존재하지 않으나, 텔레그램 채널 [@cloudtpu](https://t.me/cloudtpu)이나, 디스코드 채널 [TPU Podcast](https://github.com/shawwn/tpunicorn#ml-community)에 참여할 수 있습니다.  
+여기엔 TRC Cloud TPU v4 유저가 그룹안에 있습니다
 
-## 2. Introduction to TPU
 
-### 2.1. Why TPU?
+## 2. TPU 소개
 
-**TL;DR**: TPU is to GPU as GPU is to CPU.
+### 2.1. TPU를 사용하는 이유?
 
-TPU is a special hardware designed specifically for machine learning. There is a [performance comparison](https://github.com/huggingface/transformers/blob/main/examples/flax/language-modeling/README.md#runtime-evaluation) in Hugging Face Transformers:
+**한줄요약**: GPU가 CPU를 대체하듯, TPU는 GPU를 대체할 수 있습니다
+
+TPU는 머신러닝을 위해 설계된 특별한 하드웨어 입니다. Huggingface Transforemrs 퍼포먼스를 참고할 수 있습니다.  
+[performance comparison](https://github.com/huggingface/transformers/blob/main/examples/flax/language-modeling/README.md#runtime-evaluation):
 
 ![](assets/5.png)
 
-Moreover, for researchers, [the TRC program](https://sites.research.google/trc/about/) provides free TPU. As far as I know, if you have ever been concerned about the computing resources for training models, this is the best solution. For more details on the TRC program, see below.
+게다가 [the TRC program](https://sites.research.google/trc/about/)은 연구자들을 위해 free TPU를 제공합니다. 제가 아는 한 모델을 학습할 때 컴퓨팅 리소스를 고민해본 적이 있다면 이게 가장 최적의 해결책입니다.  
+자세한 내용은 아래에 TRC program의 내용을 참고하세요.  
 
-### 2.2. TPU is so good, why haven't I seen many people using it?
 
-If you want to use PyTorch, TPU may not be suitable for you. TPU is poorly supported by PyTorch. In one of my experiments, one batch took about 14 seconds to run on CPU, but over 4 hours to run on TPU. Twitter user @mauricetpunkt also thinks [PyTorch's performance on TPUs is bad](https://twitter.com/mauricetpunkt/status/1506944350281945090).
+### 2.2. TPU를 많은 사람들이 사용하지 않는 이유?
 
-Another problem is that although a single TPU v3-8 device has 8 cores (16 GiB memory for each core), you need to write extra code to make use of all the 8 cores (see below). Otherwise, only the first core is used.
+만약 Pytorch를 사용한다면, TPU는 적합하지 않을 수 있습니다. TPU는 Pytorch에서 제대로 지원되지 않습니다. 제 실험으로 비춰봤을 때, 1개 batch가 cpu에서 14초가 걸린 반면 TPU에선 4시간이 넘게 걸렸습니다.  
+트위터 유저 @mauricetpunkt 또한 [TPU에서 Pytorch 퍼포먼스가 좋지 않다고 했습니다.](https://twitter.com/mauricetpunkt/status/1506944350281945090).  
+  
+추가적인 문제로, 1개의 TPU v3-8은 8개 코어로(각 16GB memory) 이뤄져있으며, 이걸 전부 사용하려면 부가적인 코드를 사용해야 합니다. 그렇지 않으면 1개 코어만 사용됩니다.
 
-### 2.3. I know TPU is good now. Can I touch a real TPU?
+### 2.3. TPU, 좋은건 알겠는데 실제로 소유할 수 있을까?
+  
+불행히도 TPU를 물리적으로 가질 순 없고, 클라우드 서비스를 활용해야만 가능합니다.  
 
-Unfortunately, in most cases you cannot touch a TPU physically. TPU is only available through cloud services.
+### 2.4. TPU에 액세스 하는 방법?
 
-### 2.4. How do I get access to TPU?
+TPU 인스턴스를 [Google Cloud Platform](https://cloud.google.com/tpu)에서 생성할 수 있습니다. 자세한 정보는 아래를 참고하세요.
 
-You can create TPU instances on [Google Cloud Platform](https://cloud.google.com/tpu). For more information on setting up TPU, see below.
+[Google Colab](https://colab.research.google.com/)을 사용할 수 있지만, 별로 추천하진 않습니다. 게다가 [TRC program](https://sites.research.google/trc/about/)을 통해 무료로 TPU를 받게 된다면 코랩보단 Google Cloud Platform을 사용하게 될겁니다.
 
-You can also use [Google Colab](https://colab.research.google.com/), but I don't recommend this way. Moreover, if you get free access to TPU from the [TRC program](https://sites.research.google/trc/about/), you will be using Google Cloud Platform, not Google Colab.
+### 2.5. TPU instance를 만들어야 한다구? 그게 뭔데?
 
-### 2.5. What does it mean to create a TPU instance? What do I actually get?
-
-After creating a TPU v3-8 instance on [Google Cloud Platform](https://cloud.google.com/tpu), you will get a Ubuntu 20.04 cloud server with sudo access, 96 cores, 335 GiB memory and one TPU device with 8 cores (128 GiB TPU memory in total).
+TPU v3-8 인스턴스를 [Google Cloud Platform](https://cloud.google.com/tpu)에서 만들면, Ubuntu 20.04 cloud server에 슈퍼유저 권한을 가지게 되며, 96개 코어, 335GB 메모리, 그리고 TPU 장비 1개(8개코어, 128GB vram)를 받게 됩니다
 
 ![](assets/0.png)
 
-This is similar to the way we use GPU. In most cases, when you use a GPU, you use a Linux server that connects with a GPU. When you use a TPU, you use a Linux server that connects with a TPU.
+TPU는 우리가 GPU를 쓰는 방법과 유사합니다. 대부분 우리가 GPU를 사용할 때 GPU가 딸린 리눅스 서버를 사용하듯이 사용하면 됩니다. 단지 그 GPU가 TPU와 연결된 것 뿐입니다
 
-## 3. Introduction to the TRC Program
+## 3. TRC Program 소개
 
-### 3.1. How to apply for the TRC program?
+### 3.1. TRC program 신청방법?
 
-Besides its [homepage](https://sites.research.google/trc/about/), Shawn has written a wonderful article about the TRC program in [google/jax#2108](https://github.com/google/jax/issues/2108#issuecomment-866238579). Anyone who is interested in TPU should read it immediately.
+[homepage](https://sites.research.google/trc/about/)의 내용이 있지만서도, Shawn이 TRC program에 대해서 [google/jax#2108](https://github.com/google/jax/issues/2108#issuecomment-866238579)에 상세하게 써두었습니다. TPU에 관심있다면 바로 읽는게 좋습니다.
 
-### 3.2. Is it really free?
+### 3.2. 정말 공짜야?
 
-At the first three months, it is completely free because all the fees are covered by Google Cloud free trial. After that, I pay only about HK$13.95 (approx. US$1.78) for one month for the outbound Internet traffic.
+첫 3달 동안 완전히 무료로 사용할 수 있으며 이후 한달에 HK$13.95, US$1.78정도를 사용하는데 이건 인터넷 트래픽에 대한 outbound 비용입니다.
 
-## 4. Create a TPU VM Instance
 
-### 4.1. Modify VPC firewall
+## 4. TPU VM Instance 만들기
 
-You need to loosen the restrictions of the firewall so that Mosh and other programs will not be blocked.
+### 4.1. VPC firewall 수정
 
-Open the [Firewall management page](https://console.cloud.google.com/networking/firewalls/list) in VPC network.
+Mosh나 기타 프로그램이 막히지 않도록 방화벽의 제한을 완화해야 합니다.  
 
-Click the button to create a new firewall rule.
+VPC network에 있는 [Firewall management page](https://console.cloud.google.com/networking/firewalls/list)를 여세요
+
+새로운 방화벽 규칙 생성을 위해 버튼 클릭.
 
 ![](assets/2.png)
 
-Set name to 'allow-all', targets to 'All instances in the network', source filter to 0.0.0.0/0, protocols and ports to 'Allow all', and then click 'Create'.
+이름을 allow-all로 명명하고, target은 All instances in the network, source filter는 0.0.0.0/0, protocols and prots를 allow all로, 이후 생성 버튼을 클릭합니다.
 
-More stringently circumscribed firewall rules may be enforced for users working with confidential datasets or other situations where a high level of security is required.
+대외비 데이터셋을 사용하거나, 높은 수준의 보안이 필요한 사용자는 더 엄격하게 방화벽 규칙을 적용하는 것이 좋습니다.
 
-### 4.2. Create the instance
+### 4.2. instance 만들기
 
-Open [Google Cloud Platform](https://cloud.google.com/tpu), navigate to the [TPU management page](https://console.cloud.google.com/compute/tpus).
+[Google Cloud Platform](https://cloud.google.com/tpu)페이지에 들어간 후, 네비게이터 메뉴에서 [TPU management page](https://console.cloud.google.com/compute/tpus)에 들어갑니다.
 
 ![](assets/1.png)
 
-Click the console button on the top-right corner to activate Cloud Shell.
+우측 상단에 있는 Cloud Shell 콘솔 버튼을 누릅니다.(클라우드 쉘 실행)
 
-In Cloud Shell, type the following command to create a Cloud TPU VM v3-8 with TPU software version v2-nightly20210914:
+Cloud Shell에서 Cloud TPU VM v3-8을 만들기 위해 아래의 명령어를 command 창에 입력합니다
+(버전은 변경 가능)
 
 ```sh
 gcloud alpha compute tpus tpu-vm create node-1 --project tpu-develop --zone europe-west4-a --accelerator-type v3-8 --version v2-nightly20210914
 ```
 
-If the command fails because there are no more TPUs to allocate, you can re-run the command again.
+만약 명령어 실행이 실패하면 TPU가 모두 점유중인 것으로, 다시 실행합니다
 
-Besides, It is more convinent to have the `gcloud` command installed on your local machine, so that you will not need to open a Cloud Shell to run the command.
+gcloud 커맨드를 로컬 머신에 설치하면 Cloud shell을 열어 커맨드를 실행하는거보다 더 편합니다.
 
-To create a TPU Pod, run the following command:
+TPU Pod을 만들려면 아래의 명령어를 실행하세요.
 
 ```sh
 gcloud alpha compute tpus tpu-vm create node-3 --project tpu-advanced-research --zone us-central2-b --accelerator-type v4-16 --version v2-alpha-tpuv4
 ```
 
-### 4.3. SSH to the server
+### 4.3. 서버에 SSH 접속하기
 
-To SSH into the TPU VM:
+TPU VM에 SSH로 접속:
 
 ```sh
 gcloud alpha compute tpus tpu-vm ssh node-1 --zone europe-west4-a
 ```
 
-To SSH into one of the TPU Pods:
+TPU Pods중 하나에 SSH 접속:
 
 ```sh
 gcloud alpha compute tpus tpu-vm ssh node-3 --zone us-central2-b --worker 0
 ```
 
-## 5. Environment Setup
+## 5. 환경 설정
 
-Save the following script to `setup.sh` and run the script.
+`setup.sh`에 아래의 스크립트를 저장 후 실행하세요 .
 
 ```sh
 gcloud alpha compute tpus tpu-vm ssh node-2 --zone us-central2-b --worker all --command '
@@ -210,74 +218,77 @@ pip install -U "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_
 '
 ```
 
-The script will create a venv in `~/.venv310`, so you will need to run the `. ~/.venv310/bin/activate` command when you activate a shell, or call the Python interpreter with `~/.venv310/bin/python`.
+이 스크립트는 `~/.venv310` 가상환경을 생성하기 때문에 가상환경을 활성화 할 때 `. ~/.venv310/bin/activate` 명렁어를 사용하거나, `~/.venv310/bin/python`를 통해 파이썬 인터프리터를 호출하면 됩니다.
 
-
-Clone this repository. In the root directory of this repository, run:
+이 레포를 clone한 뒤에 레포의 root 디렉토리에서 실행하세요.
 
 ```sh
 pip install -r requirements.txt
 ```
 
-## 6. Development Environment Setup
+## 6. 개발 환경 설정
 
-### 6.1. Set up Mosh and Byobu
+### 6.1. Mosh and Byobu 설치
 
-If you connect to the server directly with SSH, there is a risk of loss of connection. If this happens, the training script you are running in the foreground will be terminated.
+서버에 SSH를 통해 다이렉트로 접속하면 연결이 끊길 위험이 발생합니다.
+접속이 끊기면 학습하던 프로세스는 강제로 종료되버립니다.
 
-[Mosh](https://mosh.org/) and [Byobu](https://www.byobu.org/) are two programs to solve this problem. Byobu will ensure that the script continues to run on the server even if the connection is lost, while Mosh guarantees that the connection will not be lost. 
+[Mosh](https://mosh.org/) 와 [Byobu](https://www.byobu.org/)는 이런 문제를 해결합니다.
+Byobu는 연결이 끊기더라도 스크립트가 서버에서 계속 동작할 수 있도록 보장하며, Mosh는 접속이 끊기지 않는 부분을 보장합니다.
 
-Install [Mosh](https://mosh.org/#getting) on your local device, then log in into the server with:
+Mosh를 로컬에 설치하고, 아래 스크립트를 통해 login 하세요.
 
 ```sh
 mosh tpu1 -- byobu
 ```
 
-You can learn more about Byobu from the video [Learn Byobu while listening to Mozart](https://youtu.be/NawuGmcvKus).
+Byobu 참고 영상[Learn Byobu while listening to Mozart](https://youtu.be/NawuGmcvKus).
 
-### 6.2. Set up VSCode Remote-SSH
+### 6.2. VSCode Remote-SSH 설치
 
-Open VSCode. Open the 'Extensions' panel on the left. Search for 'Remote - SSH' and install.
+VSCode를 실행 후 'Extensions' 탭에서 'Remote-SSH'를 설치하세요
 
-Press <kbd>F1</kbd> to open the command palette. Type 'ssh', then select 'Remote-SSH: Connect to Host...'. Input the server name you would like to connect and press Enter.
+<kbd>F1</kbd>을 눌러 커맨드창을 실행 후 'ssh'를 타이핑 후 'Remote-SSH: ...를 선택 후 연결하고자 하는 서버의 정보를 입력하고 엔터를 치세요.
 
-Wait for VSCode to be set up on the server. After it is finished, you can develop on the server using VSCode.
+VScode가 서버에 설치되기까지 기다리고나면 VSCode를 사용해 서버에서 개발할 수 있습니다.
+
 
 ![](assets/3.png)
 
-### 6.3. How can I verify that the TPU is working?
+### 6.3. TPU 작동 확인하는 방법?
 
-Run this command:
+아래 명령어 실행:
 
 ```sh
 ~/.venv310/bin/python -c 'import jax; print(jax.devices())'  # should print TpuDevice
 ```
 
-For TPU Pods, run the following command locally:
+TPU Pods의 경우, 아래 명령어를 로컬에서 실행하세요:
 
 ```sh
 gcloud alpha compute tpus tpu-vm ssh node-2 --zone us-central2-b --worker all --command '~/.venv310/bin/python -c "import jax; jax.process_index() == 0 and print(jax.devices())"'
 ```
 
-## 7. JAX Basics
+## 7. JAX 기초
 
-### 7.1. Why JAX?
+### 7.1. JAX를 사용하는 이유?
 
-JAX is the next generation of deep learning libraries, with excellent support for TPU. To get started quickly with JAX, you can read the official [tutorial](https://jax.readthedocs.io/en/latest/jax-101/index.html).
+JAX는 차세대 딥러닝 라이브러리로, TPU에 대한 지원이 매우 잘됩니다.  
+JAX에 대한 내용으로 공식 튜토리얼을 확인해보세요.[tutorial](https://jax.readthedocs.io/en/latest/jax-101/index.html).
 
 ### 7.2. Parallelism
 
-#### 7.2.1. Basics of `jax.pmap`
+#### 7.2.1. `jax.pmap` 기본
 
-There are four key points here.
+4가지 키 포인트
 
-1\. `params` and `opt_state` should be replicated across the devices:
+1\. `params` 와 `opt_state` 는 디바이스간에 복제되어야 합니다.
 
 ```python
 replicated_params = jax.device_put_replicated(params, jax.devices())
 ```
 
-2\. `data` and `labels` should be split to the devices:
+2\. `data` 와 `labels` 디바이스간에 나뉘어야 합니다.
 
 ```python
 n_devices = jax.device_count()
@@ -286,21 +297,21 @@ assert batch_size % n_devices == 0, 'The data cannot be split evenly to the devi
 data = data.reshape(n_devices, batch_size // n_devices, *data_shapes)
 ```
 
-3\. Decorate the target function with `jax.pmap`:
+3\. `jax.pmap`과 함께 타겟 함수를 데코레이션에 사용하세요
 
 ```
 @partial(jax.pmap, axis_name='num_devices')
 ```
 
-4\. In the `loss` function, use `jax.lax.pmean` to calculate the mean value across devices:
+4\. 디바이스간에 로스 평균을 계산하기 위해 로스 함수에 `jax.lax.pmean`을 사용하세요
 
 ```python
 grads = jax.lax.pmean(grads, axis_name='num_devices')  # calculate mean across devices
 ```
 
-See [01-basics/test_pmap.py](01-basics/test_pmap.py) for a complete working example.
+[01-basics/test_pmap.py](01-basics/test_pmap.py) 작동 예시를 참고하세요
 
-See also <https://jax.readthedocs.io/en/latest/jax-101/06-parallelism.html#example>.
+공식문서<https://jax.readthedocs.io/en/latest/jax-101/06-parallelism.html#example>.
 
 #### 7.2.2. What if I want to have randomness in the update function?
 
