@@ -1,0 +1,26 @@
+{
+    "cSpell.words": [
+        "PRNG",
+        "arange",
+        "asarray",
+        "astype",
+        "bfloat",
+        "cifar",
+        "einsum",
+        "fwdwd",
+        "hstack",
+        "ndarray",
+        "optax",
+        "tqdm",
+        "trange",
+        "relu",
+        "stax",
+        "vocab",
+        "vstack",
+        "wandb"
+    ],
+    "python.formatting.provider": "autopep8",
+    "python.formatting.autopep8Args": [
+        "--max-line-length=200"
+    ]
+}

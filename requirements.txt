@@ -1,0 +1,38 @@
+ipykernel
+ipywidgets
+jupyter
+
+# Common ML libraries
+matplotlib
+Pillow
+sklearn
+
+# Tensorflow (JAX and PyTorch also rely on these)
+tensorflow
+tensorboard-plugin-profile
+
+# JAX
+jax
+jaxlib
+flax
+dm-haiku
+optax
+numpyro
+
+# PyTorch
+torch
+
+# Common DL libraries
+transformers
+datasets
+
+# Common DL Tools
+kaggle
+wandb
+gdown
+
+# For loading BART from PyTorch
+hydra-core
+omegaconf
+bitarray
+sacrebleu
