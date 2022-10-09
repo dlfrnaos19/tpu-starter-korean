@@ -313,27 +313,28 @@ grads = jax.lax.pmean(grads, axis_name='num_devices')  # calculate mean across d
 
 공식문서<https://jax.readthedocs.io/en/latest/jax-101/06-parallelism.html#example>.
 
-#### 7.2.2. What if I want to have randomness in the update function?
+#### 7.2.2. update function에 무작위성을 얻고 싶다면?
 
 ```python
 key, subkey = (lambda keys: (keys[0], keys[1:]))(rand.split(key, num=9))
 ```
 
-Note that you cannot use the regular way to split the keys:
+일반적인 split 방식은 사용할 수 없습니다.
 
 ```python
 key, *subkey = rand.split(key, num=9)
 ```
 
-Because in this way, `subkey` is a list rather than an array.
+일반적인 split을 사용할 경우, `subkey`가 array가 아닌 list가 되어버립니다.
 
-#### 7.2.3. What if I want to use optax optimizers in the update function?
+#### 7.2.3. update function에 optax optimizers를 사용하고 싶다면?
 
-`opt_state` should be replicated as well.
+`opt_state` 또한 복제되어야 합니다
 
-### 7.3. Freeze certain model parameters
+### 7.3. 특정 모델 파라미터 고정
 
-Use [`optax.set_to_zero`](https://optax.readthedocs.io/en/latest/api.html#optax.set_to_zero) together with [`optax.multi_transform`](https://optax.readthedocs.io/en/latest/api.html#optax.multi_transform).
+
+[`optax.set_to_zero`](https://optax.readthedocs.io/en/latest/api.html#optax.set_to_zero)와 [`optax.multi_transform`](https://optax.readthedocs.io/en/latest/api.html#optax.multi_transform) 사용.
 
 ```python
 params = {
@@ -354,9 +355,9 @@ optimizer_scheme = {
 optimizer = optax.multi_transform(optimizer_scheme, param_labels)
 ```
 
-See [Freeze Parameters Example](https://colab.research.google.com/drive/1-qLk5l09bq1NxZwwbu_yDk4W7da5TnFx) for details.
+[Freeze Parameters Example](https://colab.research.google.com/drive/1-qLk5l09bq1NxZwwbu_yDk4W7da5TnFx) 참고하세요.
 
-### 7.4. Integration with Hugging Face Transformers
+### 7.4. 허깅페이스 트랜스포머와 통합하기
 
 [Hugging Face Transformers](https://huggingface.co/docs/transformers/index)
 
@@ -364,15 +365,17 @@ See [Freeze Parameters Example](https://colab.research.google.com/drive/1-qLk5l0
 
 [`np.newaxis`](https://numpy.org/doc/stable/reference/constants.html#numpy.newaxis)
 
-## 8. TPU Best Practices
+## 8. TPU 사용 모범 사례
 
-### 8.1. Prefer Google Cloud Platform to Google Colab
+### 8.1. Google Colab 보다 Google Cloud Ploatform
+  
+[Google Colab](https://colab.research.google.com/)은 TPU v2-8 장비만 제공하는 반면, [Google Cloud Platform](https://cloud.google.com/tpu)은 TPU v3-8 장비도 제공합니다.
 
-[Google Colab](https://colab.research.google.com/) only provides TPU v2-8 devices, while on [Google Cloud Platform](https://cloud.google.com/tpu) you can select TPU v2-8 and TPU v3-8.
+게다가, Colab은 Jupyter Notebook 인터페이스로만 TPU에 접근할 수 있으며, [log in into the Colab server via SSH](https://ayaka.shn.hk/colab/)링크의 방법을 사용하더라도, docker image이기 때문에 root 권한을 가질 수 없습니다.
+Google Cloud platform에선 root 권한을 가질 수 있습니다.
 
-Besides, on Google Colab you can only use TPU through the Jupyter Notebook interface. Even if you [log in into the Colab server via SSH](https://ayaka.shn.hk/colab/), it is a docker image and you don't have root access. On Google Cloud Platform, however, you have full access to the TPU VM.
+굳이 Google Colab에서 TPU를 사용하고 싶다면, [스크립트](01-basics/setup_colab_tpu.py)를 사용해서 TPU를 세팅하세요
 
-If you really want to use TPU on Google Colab, you need to run [the following script](01-basics/setup_colab_tpu.py) to set up TPU:
 
 ```python
 import jax
@@ -384,49 +387,53 @@ devices = jax.devices()
 print(devices)  # should print TpuDevice
 ```
 
-### 8.2. Prefer TPU VM to TPU node
+### 8.2. TPU node 보다 TPU VM
 
-When you are creating a TPU instance, you need to choose between TPU VM and TPU node. Always prefer TPU VM because it is the new architecture in which TPU devices are connected to the host VM directly. This will make it easier to set up the TPU device.
+TPU 인스턴스를 생성할 때 TPU VM과 TPU node 중 선택해야 하는데, TPU VM을 추천합니다.  
+TPU VM은 TPU host에 다이렉트로 연결되며, TPU 장비를 세팅하기 쉽게 만들어 줍니다.
 
-### 8.3. Run Jupyter Notebook on TPU VM
+### 8.3. TPU VM에서 주피터 노트북 실행
 
-After setting up Remote-SSH, you can work with Jupyter notebook files in VSCode.
+Remote-SSH를 세팅 후 VSCode에서 Jupyter Notebook 파일로 작업할 수 있습니다.
+또는 PC에 포트포워딩을 통해 TPU VM에서 Jupyter Notebook 서버를 실행할 수도 있습니다.
+그러나 VSCode가 더 파워풀하고, 더 나은 통합기능을 제공하고 세팅하기 유리하기 때문에 VSCode를 추천합니다.
 
-Alternatively, you can run a regular Jupyter Notebook server on the TPU VM, forward the port to your PC and connect to it. However, you should prefer VSCode because it is more powerful, offers better integration with other tools and is easier to set up.
+### 8.4. TPU VM instances끼리 file 공유
 
-### 8.4. Share files across multiple TPU VM instances
+같은 Zone에 있는 TPU VM 인스턴스들은 internal IP를 통해 연결되어 있기 때문에 
+[NFS를 활용한 공유 파일 시스템 만들기](https://tecadmin.net/how-to-install-and-configure-an-nfs-server-on-ubuntu-20-04/)가 가능합니다
 
-TPU VM instances in the same zone are connected with internal IPs, so you can [create a shared file system using NFS](https://tecadmin.net/how-to-install-and-configure-an-nfs-server-on-ubuntu-20-04/).
+### 8.5. TPU 사용 모니터링
 
-### 8.5. Monitor TPU usage
+### 8.6. TPU VM server 시작하기
 
-### 8.6. Start a server on TPU VM
-
-Example: Tensorboard
+예시 : 텐서보드
 
 Although every TPU VM is allocated with a public IP, in most cases you should expose a server to the Internet because it is insecure.
 
-Port forwarding via SSH
+SSH를 통한 포트 포워딩
 
 ```
 ssh -C -N -L 127.0.0.1:6006:127.0.0.1:6006 tpu1
 ```
 
-## 9. JAX Best Practices
+## 9. JAX 사용 모범 사례
 
 ### 9.1. Import convention
 
-You may see two different kind of import conventions. One is to import jax.numpy as np and import the original numpy as onp. Another one is to import jax.numpy as jnp and leave original numpy as np.
+import 방법에 대해 다른 종류가 있습니다. 
+import jax.numpy as np, 와 import numpy as onp, 다른 방법으로는  
+import jax.numpy as jnp, 와import numpy as np 가 있습니다.
 
-On 16 Jan 2019, Colin Raffel wrote in [a blog article](https://colinraffel.com/blog/you-don-t-know-jax.html) that the convention at that time was to import original numpy as onp.
+19.1.16 Colin Raffel의 경우 [a blog article](https://colinraffel.com/blog/you-don-t-know-jax.html)에서 numpy as onp 방식을 사용했습니다.
 
-On 5 Nov 2020, Niru Maheswaranathan said in [a tweet](https://twitter.com/niru_m/status/1324078070546882560) that he thinks the convention at that time was to import jax as jnp and to leave original numpy as np.
+20.11.5 Niru Maheswaranathan의 경우 [a tweet](https://twitter.com/niru_m/status/1324078070546882560)에서 numpy as np, jax as jnp 방식을 사용했습니다
 
 TODO: Conclusion?
 
-### 9.2. Manage random keys in JAX
+### 9.2. JAX random keys 관리
 
-The regular way is this:
+일반적인 방법:
 
 ```python
 key, *subkey = rand.split(key, num=4)
@@ -435,9 +442,9 @@ print(subkey[1])
 print(subkey[2])
 ```
 
-### 9.3. Serialize model parameters
+### 9.3. 모델 파라미터 시리얼라이즈
 
-Normally, the model parameters are represented by a nested dictionary like this:
+일반적으로 모델 파라미터들은 중첩된 딕셔너리 구조로 표현됩니다.
 
 ```python
 {
@@ -453,11 +460,12 @@ Normally, the model parameters are represented by a nested dictionary like this:
 }
 ```
 
-You can use [`flax.serialization.msgpack_serialize`](https://flax.readthedocs.io/en/latest/flax.serialization.html#flax.serialization.msgpack_serialize) to serialize the parameters into bytes, and use [`flax.serialization.msgpack_restore`](https://flax.readthedocs.io/en/latest/flax.serialization.html#flax.serialization.msgpack_serialize) to convert them back.
+[`flax.serialization.msgpack_serialize`](https://flax.readthedocs.io/en/latest/flax.serialization.html#flax.serialization.msgpack_serialize)를 사용하면 모델 파라미터를 시리얼라이즈해서 바이트로 바꿀 수 있으며, [`flax.serialization.msgpack_restore`](https://flax.readthedocs.io/en/latest/flax.serialization.html#flax.serialization.msgpack_serialize)를 사용하면 다시 중첩된 딕셔너리로 변경 가능합니다.
 
-### 9.4. Convertion between NumPy arrays and JAX arrays
+### 9.4. NumPy arrays 와 JAX arrays 변환
 
-Use [`np.asarray`](https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.asarray.html) and [`onp.asarray`](https://numpy.org/doc/stable/reference/generated/numpy.asarray.html).
+
+[`np.asarray`](https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.asarray.html) 와 [`onp.asarray`](https://numpy.org/doc/stable/reference/generated/numpy.asarray.html) 사용.
 
 ```python
 import jax.numpy as np
@@ -470,9 +478,9 @@ c = onp.array([1, 2, 3])  # NumPy array
 d = np.asarray(c)  # converted to JAX array
 ```
 
-### 9.5. Convertion between PyTorch tensors and JAX arrays
+### 9.5. PyTorch tensors 와 JAX arrays 변환
 
-Convert a PyTorch tensor to a JAX array:
+PyTorch tensor를 JAX array로 변환:
 
 ```python
 import jax.numpy as np
@@ -482,7 +490,7 @@ a = torch.rand(2, 2)  # PyTorch tensor
 b = np.asarray(a.numpy())  # JAX array
 ```
 
-Convert a JAX array to a PyTorch tensor:
+a JAX array를 PyTorch tensor로 변환:
 
 ```python
 import jax.numpy as np
@@ -493,33 +501,34 @@ a = np.zeros((2, 2))  # JAX array
 b = torch.from_numpy(onp.asarray(a))  # PyTorch tensor
 ```
 
-This will result in a warning:
+아래 warning 메세지가 뜹니다:
 
 ```
 UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at  ../torch/csrc/utils/tensor_numpy.cpp:178.)
 ```
 
-If you need writable tensors, you can use `onp.array` instead of `onp.asarray` to make a copy of the original array.
+쓰기 가능한 텐서가 필요하다면 `onp.asarray`가 아닌 `onp.array`를 사용해 original array를 카피하면 됩니다.
 
-### 9.6. Type annotation
+### 9.6. 타입 어노테이션
 
 [google/jaxtyping](https://github.com/google/jaxtyping)
 
-### 9.7. Check if an array is either a NumPy array or a JAX array
+### 9.7. NumPy array , a JAX array 여부 확인하기
 
 ```python
 isinstance(a, (np.ndarray, onp.ndarray))
 ```
 
-### 9.8. Get the shapes of all parameters in a nested dictionary
+### 9.8. 중첩 딕셔너리 구조에서 모든 파라미터 shape 확인
 
 ```python
 jax.tree_map(lambda x: x.shape, params)
 ```
 
-### 9.9. The correct way to generate random numbers on CPU
+### 9.9. CPU에서 무작위 숫자 생성하는 올바른 방법
 
-Use the [jax.default_device()](https://jax.readthedocs.io/en/latest/_autosummary/jax.default_device.html) context manager:
+
+[jax.default_device()](https://jax.readthedocs.io/en/latest/_autosummary/jax.default_device.html)를 컨텍스트 매니저와 사용:
 
 ```python
 import jax
@@ -534,19 +543,19 @@ with jax.default_device(device_cpu):
 
 See <https://github.com/google/jax/discussions/9691#discussioncomment-3650311>.
 
-### 9.10. Use optimizers from Optax
+### 9.10. Optax로 optimizers 사용하기
 
-### 9.11. Use the cross-entropy loss implementation from Optax
+### 9.11. Optax로 크로스엔트로피 loss 사용하기
 
 `optax.softmax_cross_entropy_with_integer_labels`
 
-## 10. Working With Pods
+## 10. Pods 사용하기
 
-### 10.1. Create a shared directory using NFS
+### 10.1. NFS를 사용해 공유 디렉토리 만들기
 
-See also: §8.4.
+참고: §8.4.
 
-### 10.2. Run a command simultaneously on all TPU Pods
+### 10.2. 모든 TPU Pods에서 동시에 command 실행하기
 
 ```sh
 #!/bin/bash
@@ -560,57 +569,58 @@ wait
 
 See <https://github.com/ayaka14732/bart-base-jax/blob/f3ccef7b32e2aa17cde010a654eff1bebef933a4/startpod>.
 
-## 11. Common Gotchas
+## 11. 일반적인 문제들
 
-### 11.1. External IP of TPU machine changes occasionally
+### 11.1. TPU machine의 External IP가 빈번하게 바뀌는 현상
 
-As of 17 Jul 2022, the external IP address may change if there is a maintenance event.
+22.7.17 유지보수 일정이 있을 경우, 외부 IP주소가 바뀔 가능성이 있음 
 
-Therefore, we should use `gcloud` command instead of directly connect to it with SSH. However, if we want to use VSCode, SSH is the only choice.
+그러므로 SSH를 통해 직접 접속하기 보단 `gcloud` command를 사용해야 합니다.  
+그러나 VSCode를 사용하려면 SSH를 사용할 수 밖에 없습니다.(IP 바뀌면 ssh 정보에서 IP수정해줘야함)
 
-The system will also be rebooted.
+시스템 또한 재부팅 될겁니다.
 
-### 11.2. One TPU device can only be used by one process at a time
+### 11.2. 1개 TPU device는 1개 프로세스만 사용가능
 
-Unlike GPU, you will get an error if you run two processes on TPU at a time:
+GPU와 다르게 두개의 프로세스가 TPU에 동시에 접근하면 에러가 발생합니다.
 
 ```
 I0000 00:00:1648534265.148743  625905 tpu_initializer_helper.cc:94] libtpu.so already in use by another process. Run "$ sudo lsof -w /dev/accel0" to figure out which process is using the TPU. Not attempting to load libtpu.so in this process.
 ```
 
-Even if a TPU device has 8 cores and one process only utilizes the first core, the other processes will not be able to utilize the rest of the cores.
+TPU 디바이스가 8개의 코어이지만, 1개의 프로세스만 첫번째 코어에 접근하며 다른 프로세스는 여분의 코어를 활용할 수 없습니다.
 
-### 11.3. TCMalloc breaks several programs
+### 11.3. 여러 프로그램과 충돌나는 TCMalloc
 
-[TCMalloc](https://github.com/google/tcmalloc) is Google's customized memory allocation library. On TPU VM, `LD_PRELOAD` is set to use TCMalloc by default:
+[TCMalloc](https://github.com/google/tcmalloc)은 구글의 커스텀 메모리 배정 라이브러리 입니다. TPU VM에서 `LD_PRELOAD`은 TCMalloc을 디폴트로 사용하게 되어 있습니다. :
 
 ```sh
 $ echo LD_PRELOAD
 /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
 ```
 
-However, using TCMalloc in this manner may break several programs like gsutil:
+그러나 TCMalloc은 gsutil과 같은 여러 프로그램과 충돌합니다:
 
 ```sh
 $ gsutil --help
 /snap/google-cloud-sdk/232/platform/bundledpythonunix/bin/python3: /snap/google-cloud-sdk/232/platform/bundledpythonunix/bin/../../../lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found (required by /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4)
 ```
 
-The [homepage of TCMalloc](http://goog-perftools.sourceforge.net/doc/tcmalloc.html) also indicates that `LD_PRELOAD` is tricky and this mode of usage is not recommended.
+[homepage of TCMalloc](http://goog-perftools.sourceforge.net/doc/tcmalloc.html)에서도 `LD_PRELOAD`의 사용이 까다로우며, 이 사용모드에서 권장되지 않습니다.
 
-If you encounter problems related to TCMalloc, you can disable it in the current shell using the command:
+TCMalloc과 연관된 문제에 직면할 경우, 아래 명령어를 활용해 TCMalloc을 disable 하세요:
 
 ```sh
 unset LD_PRELOAD
 ```
 
-### 11.4. There is no TPU counterpart of `nvidia-smi`
+### 11.4. TPU를 위한 `nvidia-smi` 대체프로그램이 없음
 
-See <https://twitter.com/ayaka14732/status/1565016471323156481>.
+참고 <https://twitter.com/ayaka14732/status/1565016471323156481>.
 
-See [google/jax#9756](https://github.com/google/jax/discussions/9756).
+참고 [google/jax#9756](https://github.com/google/jax/discussions/9756).
 
-### 11.5. `libtpu.so` already in used by another process
+### 11.5. 다른 프로세스에 의해 `libtpu.so`가 사용중인 현상
 
 ```sh
 if ! pgrep -a -u $USER python ; then
@@ -619,10 +629,10 @@ fi
 rm -rf /tmp/libtpu_lockfile /tmp/tpu_logs
 ```
 
-See also <https://github.com/google/jax/issues/9220#issuecomment-1015940320>.
+참고 <https://github.com/google/jax/issues/9220#issuecomment-1015940320>.
 
-### 11.6. JAX does not support the multiprocessing `fork` strategy
+### 11.6. `fork` 방식의 multiprocessing을 지원하지 않는 JAX
 
-Use the `spawn` or `forkserver` strategies.
+ `spawn` 이나 `forkserver` 방법을 사용하세요.
 
-See <https://github.com/google/jax/issues/1805#issuecomment-561244991>.
+참고 <https://github.com/google/jax/issues/1805#issuecomment-561244991>.
