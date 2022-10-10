@@ -1,5 +1,6 @@
 # TPU Starter
 원작자의 허락을 맡고 번역하는 저장소로, 영어가 편하다면 원작자의 저장소를 참고하시면 좋습니다  
+[원작자 깃헙주소](https://github.com/ayaka14732/tpu-starter)
 
 Google Cloud TPU에 대한 모든 것
 
