@@ -410,7 +410,7 @@ Remote-SSH를 세팅 후 VSCode에서 Jupyter Notebook 파일로 작업할 수 �
 
 예시 : 텐서보드
 
-Although every TPU VM is allocated with a public IP, in most cases you should expose a server to the Internet because it is insecure.
+모든 TPU VM은 public IP를 가지고 있지만, 안전하지 않으므로 인터넷에 IP를 노출해선 안됩니다.
 
 SSH를 통한 포트 포워딩
 
